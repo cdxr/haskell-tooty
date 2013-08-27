@@ -1,4 +1,6 @@
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveFoldable #-}
+{-# LANGUAGE DeriveTraversable #-}
 
 module Graphics.Rendering.OpenGL.RenderTree where
 
@@ -8,13 +10,15 @@ import Graphics.Rendering.OpenGL.Raw.Core31.Types
 
 import Data.Fix
 import Data.Monoid
+import Data.Foldable    ( Foldable )
+import Data.Traversable ( Traversable )
 
 
 data RenderF a
     = Branch [a]
     | Trans Transform a
     | Prim GL.PrimitiveMode Prim
-    deriving (Show, Eq, Ord)
+    deriving (Show, Eq, Ord, Functor, Foldable, Traversable)
 
 
 data Transform
