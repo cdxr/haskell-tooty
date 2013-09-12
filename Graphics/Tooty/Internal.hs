@@ -3,7 +3,8 @@
 {-# LANGUAGE DeriveTraversable #-}
 
 
-module Graphics.Tooty where
+module Graphics.Tooty.Internal where
+
 
 import qualified Graphics.Rendering.OpenGL as GL
 
