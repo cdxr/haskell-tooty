@@ -69,8 +69,8 @@ scale v (Render m) = Render $ preservingMatrix $ do
     V2 x y = glfloat <$> v
 
 
-drawRect :: V2 Double -> IO ()
-drawRect dims = 
+drawRect :: V2 Double -> Render ()
+drawRect dims = Render $
     renderPrimitive Quads $ do
         vec (-x) (-y) >> tex 0 0
         vec   x  (-y) >> tex 1 0
@@ -79,7 +79,10 @@ drawRect dims =
   where
     V2 x y = glfloat . (/ 2) <$> dims
 
+    vec :: GLfloat -> GLfloat -> IO ()
     vec x y = vertex $ Vertex3 x y 0
+
+    tex :: GLfloat -> GLfloat -> IO ()
     tex s t = texCoord $ TexCoord2 s t
 
 
