@@ -2,7 +2,8 @@
 {-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveTraversable #-}
 
-module Graphics.Rendering.OpenGL.RenderTree where
+
+module Graphics.Tooty where
 
 import qualified Graphics.Rendering.OpenGL as GL
 
