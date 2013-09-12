@@ -68,5 +68,20 @@ scale v (Render m) = Render $ preservingMatrix $ do
   where
     V2 x y = glfloat <$> v
 
+
+drawRect :: V2 Double -> IO ()
+drawRect dims = 
+    renderPrimitive Quads $ do
+        vec (-x) (-y) >> tex 0 0
+        vec   x  (-y) >> tex 1 0
+        vec   x    y  >> tex 1 1
+        vec (-x)   y  >> tex 0 1
+  where
+    V2 x y = glfloat . (/ 2) <$> dims
+
+    vec x y = vertex $ Vertex3 x y 0
+    tex s t = texCoord $ TexCoord2 s t
+
+
 glfloat :: (Real a) => a -> GLfloat
 glfloat = realToFrac
