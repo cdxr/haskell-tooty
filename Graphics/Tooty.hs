@@ -10,7 +10,11 @@ import qualified Graphics.Rendering.OpenGL as GL
 
 import Data.Colour.SRGB.Linear as C
 
-import Linear
+import Linear.V2
+import Linear.Affine
+
+
+type P2 = Point V2
 
 
 newtype Render a = Render { runRender :: IO a }
@@ -68,6 +72,10 @@ scale v (Render m) = Render $ preservingMatrix $ do
   where
     V2 x y = glfloat <$> v
 
+drawLine :: P2 Double -> P2 Double -> Render ()
+drawLine a b = Render $ renderPrimitive Lines $ mapM_ vertex' [a, b]
+
+
 rectangleTo :: Double -> Double -> Render ()
 rectangleTo dx dy = Render $ 
     renderPrimitive Quads $ do
@@ -84,6 +92,10 @@ rectangleTo dx dy = Render $
         vertex $ Vertex3 (x * dx') (y * dy') 0
         texCoord $ TexCoord2 x y
 
+
+vertex' :: (Real a) => P2 a -> IO ()
+vertex' (P v) = vertex $ Vertex3 x y 0
+  where V2 x y = glfloat <$> v
 
 drawRect :: V2 Double -> Render ()
 drawRect dims = Render $
