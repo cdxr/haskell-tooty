@@ -23,7 +23,7 @@ renderBuffer m = do
     runRender m <* GL.flush
 
 
--- | Modify a StateVar, run a computation, the return the StateVar to its
+-- | Modify a StateVar, run a computation, then return the StateVar to its
 -- former state.
 localStateVar :: (a -> a) -> StateVar a -> Render b -> Render b
 localStateVar f v (Render m) = Render $ do
@@ -67,6 +67,22 @@ scale v (Render m) = Render $ preservingMatrix $ do
     m
   where
     V2 x y = glfloat <$> v
+
+rectangleTo :: Double -> Double -> Render ()
+rectangleTo dx dy = Render $ 
+    renderPrimitive Quads $ do
+        p 0 0
+        p 1 0
+        p 1 1
+        p 0 1
+  where
+    dx' = realToFrac dx
+    dy' = realToFrac dy
+
+    p :: GLfloat -> GLfloat -> IO ()
+    p x y = do
+        vertex $ Vertex3 (x * dx') (y * dy') 0
+        texCoord $ TexCoord2 x y
 
 
 drawRect :: V2 Double -> Render ()
