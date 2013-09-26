@@ -83,26 +83,6 @@ drawLine :: V2 Double -> V2 Double -> Render ()
 drawLine a b = Render $ renderPrimitive Lines $ mapM_ vert3 [a, b]
 
 
-{-
-rectangleTo :: V2 Double -> Render ()
-rectangleTo dx dy = Render $ 
-    renderPrimitive Quads $ do
-        p 0 0
-        p 1 0
-        p 1 1
-        p 0 1
-  where
-    dx' = realToFrac dx
-    dy' = realToFrac dy
-
-    p :: GLfloat -> GLfloat -> IO ()
-    p x y = do
-        vertex $ Vertex3 (x * dx') (y * dy') 0
-        texCoord $ TexCoord2 x y
--}
-
-
-
 draw :: (HasGeo g) => Style -> g -> Render ()
 draw s g = Render $ runGeo (toGeo g) s
 
@@ -142,6 +122,10 @@ geoQuad (Quad a b c d) = Geo $ \s -> do
   where
     tex :: GLfloat -> GLfloat -> IO ()
     tex s t = GL.texCoord $ GL.TexCoord2 s t
+
+
+rectangleTo :: V2 Double -> Quad
+rectangleTo (V2 x y) = Quad 0 (V2 x 0) (V2 x y) (V2 0 y)
 
 
 centeredRect :: V2 Double -> Quad
