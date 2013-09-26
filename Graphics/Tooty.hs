@@ -3,18 +3,14 @@
 module Graphics.Tooty where
 
 import Control.Applicative
+import Data.Monoid
 
-import Graphics.Rendering.OpenGL hiding ( Render )
+import Graphics.Rendering.OpenGL hiding ( Render, PolygonMode(..) )
 import qualified Graphics.Rendering.OpenGL as GL
---import Data.StateVar
 
 import Data.Colour.SRGB.Linear as C
 
 import Linear.V2
-import Linear.Affine
-
-
-type P2 = Point V2
 
 
 newtype Render a = Render { runRender :: IO a }
@@ -51,16 +47,15 @@ alpha a = localStateVar (setAlpha a) currentColor
     setAlpha a (Color4 r g b _) = Color4 r g b (realToFrac a)
 
 
+
 move :: V2 Double -> Render a -> Render a
 move v (Render m) = Render $ preservingMatrix $ do
-    GL.translate (Vector3 x y 0)
+    GL.translate (vec3 v)
     m
-  where
-    V2 x y = glfloat <$> v
 
 rotate :: Double -> Render a -> Render a
 rotate t (Render m) = Render $ preservingMatrix $ do
-    GL.rotate (toDegrees $ glfloat t) (Vector3 0 0 1 :: Vector3 GLfloat)
+    GL.rotate (toDegrees $ glf t) (Vector3 0 0 1 :: Vector3 GLfloat)
     m
   where
     toDegrees = (*) 180 . (/ pi)
@@ -70,13 +65,15 @@ scale v (Render m) = Render $ preservingMatrix $ do
     GL.scale x y 0
     m
   where
-    V2 x y = glfloat <$> v
-
-drawLine :: P2 Double -> P2 Double -> Render ()
-drawLine a b = Render $ renderPrimitive Lines $ mapM_ vertex' [a, b]
+    V2 x y = glf <$> v
 
 
-rectangleTo :: Double -> Double -> Render ()
+drawLine :: V2 Double -> V2 Double -> Render ()
+drawLine a b = Render $ renderPrimitive Lines $ mapM_ vert3 [a, b]
+
+
+{-
+rectangleTo :: V2 Double -> Render ()
 rectangleTo dx dy = Render $ 
     renderPrimitive Quads $ do
         p 0 0
@@ -91,28 +88,68 @@ rectangleTo dx dy = Render $
     p x y = do
         vertex $ Vertex3 (x * dx') (y * dy') 0
         texCoord $ TexCoord2 x y
+-}
 
 
-vertex' :: (Real a) => P2 a -> IO ()
-vertex' (P v) = vertex $ Vertex3 x y 0
-  where V2 x y = glfloat <$> v
 
-drawRect :: V2 Double -> Render ()
-drawRect dims = Render $
-    renderPrimitive Quads $ do
-        vec (-x) (-y) >> tex 0 0
-        vec   x  (-y) >> tex 1 0
-        vec   x    y  >> tex 1 1
-        vec (-x)   y  >> tex 0 1
+draw :: (HasGeo g) => Style -> g -> Render ()
+draw s g = Render $ runGeo (toGeo g) s
+
+
+data Style = Outline | Fill
+    deriving (Show, Eq, Ord)
+
+
+newtype Geo = Geo { runGeo :: Style -> IO () }
+
+instance Monoid Geo where
+    mempty = Geo $ \_ -> return ()
+    mappend a b = Geo $ \s -> runGeo a s >> runGeo b s
+
+
+class HasGeo g where
+    toGeo :: g -> Geo
+
+instance HasGeo Quad where
+    toGeo = geoQuad
+
+
+-- | A convex quadrilateral with counter-clockwise winding.
+data Quad = Quad (V2 Double) (V2 Double) (V2 Double) (V2 Double)
+    deriving (Show, Eq, Ord)
+
+geoQuad :: Quad -> Geo
+geoQuad (Quad a b c d) = Geo $ \s -> do
+    let primMode = case s of
+            Outline -> GL.LineLoop
+            Fill    -> GL.Quads
+    GL.renderPrimitive primMode $ do
+        vert3 a >> tex 0 0
+        vert3 b >> tex 1 0
+        vert3 c >> tex 1 1
+        vert3 d >> tex 0 1
   where
-    V2 x y = glfloat . (/ 2) <$> dims
-
-    vec :: GLfloat -> GLfloat -> IO ()
-    vec x y = vertex $ Vertex3 x y 0
-
     tex :: GLfloat -> GLfloat -> IO ()
-    tex s t = texCoord $ TexCoord2 s t
+    tex s t = GL.texCoord $ GL.TexCoord2 s t
 
 
-glfloat :: (Real a) => a -> GLfloat
-glfloat = realToFrac
+centeredRect :: V2 Double -> Quad
+centeredRect p = Quad (V2 (-x) (-y)) (V2 x (-y)) (V2 x y) (V2 (-x) y)
+  where
+    V2 x y = (/ 2) <$> p
+
+
+
+vec3 :: V2 Double -> GL.Vector3 GLfloat
+vec3 v = GL.Vector3 x y 0
+  where
+    V2 x y = fmap realToFrac v
+
+vert3 :: V2 Double -> IO ()
+vert3 v = GL.vertex $ GL.Vertex3 x y 0
+  where
+    x :: GLfloat
+    V2 x y = fmap realToFrac v
+
+glf :: (Real a) => a -> GLfloat
+glf = realToFrac
