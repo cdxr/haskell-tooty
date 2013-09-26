@@ -13,6 +13,8 @@ import Data.Colour.SRGB.Linear as C
 import Linear.V2
 
 
+-- * Render
+
 newtype Render a = Render { runRender :: IO a }
     deriving (Functor, Applicative, Monad)
 
@@ -23,16 +25,8 @@ renderBuffer m = do
     runRender m <* GL.flush
 
 
--- | Modify a StateVar, run a computation, then return the StateVar to its
--- former state.
-localStateVar :: (a -> a) -> StateVar a -> Render b -> Render b
-localStateVar f v (Render m) = Render $ do
-    a' <- get v
-    v $= f a'
-    b <- m
-    v $= a'
-    return b
 
+-- ** Color
 
 color :: Colour Float -> Render a -> Render a
 color c = localStateVar (setRGB c) currentColor
@@ -47,6 +41,7 @@ alpha a = localStateVar (setAlpha a) currentColor
     setAlpha a (Color4 r g b _) = Color4 r g b (realToFrac a)
 
 
+-- ** Translations
 
 move :: V2 Double -> Render a -> Render a
 move v (Render m) = Render $ preservingMatrix $ do
@@ -66,6 +61,22 @@ scale v (Render m) = Render $ preservingMatrix $ do
     m
   where
     V2 x y = glf <$> v
+
+
+-- ** Utilties
+
+-- | Modify a StateVar, run a computation, then return the StateVar to its
+-- former state.
+localStateVar :: (a -> a) -> StateVar a -> Render b -> Render b
+localStateVar f v (Render m) = Render $ do
+    a' <- get v
+    v $= f a'
+    b <- m
+    v $= a'
+    return b
+
+
+-- * Geometry
 
 
 drawLine :: V2 Double -> V2 Double -> Render ()
@@ -139,6 +150,8 @@ centeredRect p = Quad (V2 (-x) (-y)) (V2 x (-y)) (V2 x y) (V2 (-x) y)
     V2 x y = (/ 2) <$> p
 
 
+
+-- * Internal Utilities
 
 vec3 :: V2 Double -> GL.Vector3 GLfloat
 vec3 v = GL.Vector3 x y 0
