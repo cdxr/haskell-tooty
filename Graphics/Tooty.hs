@@ -124,14 +124,14 @@ geoQuad (Quad a b c d) = Geo $ \s -> do
     tex s t = GL.texCoord $ GL.TexCoord2 s t
 
 
-rectangleTo :: V2 Double -> Quad
-rectangleTo (V2 x y) = Quad 0 (V2 x 0) (V2 x y) (V2 0 y)
+rectangle :: V2 Double -> V2 Double -> Quad
+rectangle a@(V2 ax ay) b@(V2 bx by) = Quad a (V2 bx ay) b (V2 ax by)
 
 
-centeredRect :: V2 Double -> Quad
-centeredRect p = Quad (V2 (-x) (-y)) (V2 x (-y)) (V2 x y) (V2 (-x) y)
+centerRectangle :: V2 Double -> Quad
+centerRectangle p = rectangle (negate p') p'
   where
-    V2 x y = (/ 2) <$> p
+    p' = fmap (/ 2) p
 
 
 
