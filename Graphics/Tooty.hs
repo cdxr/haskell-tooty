@@ -116,13 +116,16 @@ instance Monoid Geo where
 class HasGeo g where
     toGeo :: g -> Geo
 
-instance HasGeo Quad where
-    toGeo = geoQuad
-
+instance HasGeo Geo where
+    toGeo = id
+    
 
 -- | A convex quadrilateral with counter-clockwise winding.
 data Quad = Quad (V2 Double) (V2 Double) (V2 Double) (V2 Double)
     deriving (Show, Eq, Ord)
+
+instance HasGeo Quad where
+    toGeo = geoQuad
 
 geoQuad :: Quad -> Geo
 geoQuad (Quad a b c d) = Geo $ \s -> do
