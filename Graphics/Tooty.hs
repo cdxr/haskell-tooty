@@ -4,6 +4,7 @@ module Graphics.Tooty
 (
     -- * The Render monad
     Render,
+    render,
     renderBuffer,
     -- ** Translations
     move,
@@ -19,6 +20,7 @@ module Graphics.Tooty
 
     -- * Geometry
     Geo,
+    HasGeo (..),
     Quad (..),
     rectangle,
     centerRectangle,
@@ -39,14 +41,14 @@ import Data.Colour.SRGB.Linear ( Colour, RGB(..), toRGB )
 import Linear.V2
 
 
-newtype Render a = Render { runRender :: IO a }
+newtype Render a = Render { render :: IO a }
     deriving (Functor, Applicative, Monad)
 
 
 renderBuffer :: Render a -> IO a
 renderBuffer m = do
     GL.clear [GL.ColorBuffer]
-    runRender m <* GL.flush
+    render m <* GL.flush
 
 
 -- Color
