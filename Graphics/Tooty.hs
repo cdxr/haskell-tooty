@@ -34,7 +34,7 @@ import Data.Monoid
 import Graphics.Rendering.OpenGL ( GLfloat, ($=), StateVar )
 import qualified Graphics.Rendering.OpenGL as GL
 
-import Data.Colour.SRGB.Linear
+import Data.Colour.SRGB.Linear ( Colour, RGB(..), toRGB )
 
 import Linear.V2
 
