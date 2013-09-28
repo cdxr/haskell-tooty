@@ -22,6 +22,10 @@ module Graphics.Tooty
     Quad (..),
     rectangle,
     centerRectangle,
+
+    -- * Re-exports
+    module Linear.V2,
+    module Data.Colour.SRGB.Linear
 ) where
 
 import Control.Applicative
@@ -30,7 +34,7 @@ import Data.Monoid
 import Graphics.Rendering.OpenGL ( GLfloat, ($=), StateVar )
 import qualified Graphics.Rendering.OpenGL as GL
 
-import Data.Colour.SRGB.Linear as C
+import Data.Colour.SRGB.Linear
 
 import Linear.V2
 
@@ -51,7 +55,7 @@ color :: Colour Float -> Render a -> Render a
 color c = localStateVar (setRGB c) GL.currentColor
   where
     setRGB c (GL.Color4 _ _ _ a) =
-        let C.RGB r g b = fmap realToFrac $ C.toRGB c
+        let RGB r g b = fmap realToFrac $ toRGB c
         in GL.Color4 r g b a
 
 alpha :: Float -> Render a -> Render a
