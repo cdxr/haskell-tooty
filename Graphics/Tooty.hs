@@ -1,11 +1,33 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Graphics.Tooty where
+module Graphics.Tooty
+(
+    -- * The Render monad
+    Render,
+    renderBuffer,
+    -- ** Translations
+    move,
+    rotate,
+    scale,
+    -- ** Color operations
+    color,
+    alpha,
+    -- ** Drawing
+    drawLine,
+    Style (..),
+    draw,
+
+    -- * Geometry
+    Geo,
+    Quad (..),
+    rectangle,
+    centerRectangle,
+) where
 
 import Control.Applicative
 import Data.Monoid
 
-import Graphics.Rendering.OpenGL hiding ( Render, PolygonMode(..) )
+import Graphics.Rendering.OpenGL ( GLfloat, ($=), StateVar )
 import qualified Graphics.Rendering.OpenGL as GL
 
 import Data.Colour.SRGB.Linear as C
@@ -13,74 +35,58 @@ import Data.Colour.SRGB.Linear as C
 import Linear.V2
 
 
--- * Render
-
 newtype Render a = Render { runRender :: IO a }
     deriving (Functor, Applicative, Monad)
 
 
 renderBuffer :: Render a -> IO a
 renderBuffer m = do
-    GL.clear [ColorBuffer]
+    GL.clear [GL.ColorBuffer]
     runRender m <* GL.flush
 
 
-
--- ** Color
+-- Color
 
 color :: Colour Float -> Render a -> Render a
-color c = localStateVar (setRGB c) currentColor
+color c = localStateVar (setRGB c) GL.currentColor
   where
-    setRGB c (Color4 _ _ _ a) =
+    setRGB c (GL.Color4 _ _ _ a) =
         let C.RGB r g b = fmap realToFrac $ C.toRGB c
-        in Color4 r g b a
+        in GL.Color4 r g b a
 
 alpha :: Float -> Render a -> Render a
-alpha a = localStateVar (setAlpha a) currentColor
+alpha a = localStateVar (setAlpha a) GL.currentColor
   where
-    setAlpha a (Color4 r g b _) = Color4 r g b (realToFrac a)
+    setAlpha a (GL.Color4 r g b _) = GL.Color4 r g b (realToFrac a)
 
 
--- ** Translations
+-- Translations
 
 move :: V2 Double -> Render a -> Render a
-move v (Render m) = Render $ preservingMatrix $ do
+move v (Render m) = Render $ GL.preservingMatrix $ do
     GL.translate (vec3 v)
     m
 
 rotate :: Double -> Render a -> Render a
-rotate t (Render m) = Render $ preservingMatrix $ do
-    GL.rotate (toDegrees $ glf t) (Vector3 0 0 1 :: Vector3 GLfloat)
+rotate t (Render m) = Render $ GL.preservingMatrix $ do
+    GL.rotate (toDegrees $ glf t) (GL.Vector3 0 0 1 :: GL.Vector3 GLfloat)
     m
   where
     toDegrees = (*) 180 . (/ pi)
 
 scale :: V2 Double -> Render a -> Render a
-scale v (Render m) = Render $ preservingMatrix $ do
+scale v (Render m) = Render $ GL.preservingMatrix $ do
     GL.scale x y 0
     m
   where
     V2 x y = glf <$> v
 
 
--- ** Utilties
-
--- | Modify a StateVar, run a computation, then return the StateVar to its
--- former state.
-localStateVar :: (a -> a) -> StateVar a -> Render b -> Render b
-localStateVar f v (Render m) = Render $ do
-    a' <- get v
-    v $= f a'
-    b <- m
-    v $= a'
-    return b
-
-
--- * Geometry
+-- Drawing
 
 
 drawLine :: V2 Double -> V2 Double -> Render ()
-drawLine a b = Render $ renderPrimitive Lines $ mapM_ vert3 [a, b]
+drawLine a b = Render $ GL.renderPrimitive GL.Lines $ mapM_ vert3 [a, b]
 
 
 draw :: (HasGeo g) => Style -> g -> Render ()
@@ -89,6 +95,9 @@ draw s g = Render $ runGeo (toGeo g) s
 
 data Style = Outline | Fill
     deriving (Show, Eq, Ord)
+
+
+-- Geometry
 
 
 newtype Geo = Geo { runGeo :: Style -> IO () }
@@ -135,7 +144,19 @@ centerRectangle p = rectangle (negate p') p'
 
 
 
--- * Internal Utilities
+-- Internal Utilities
+
+
+-- | Modify a StateVar, run a computation, then return the StateVar to its
+-- former state.
+localStateVar :: (a -> a) -> StateVar a -> Render b -> Render b
+localStateVar f v (Render m) = Render $ do
+    a' <- GL.get v
+    v $= f a'
+    b <- m
+    v $= a'
+    return b
+
 
 vec3 :: V2 Double -> GL.Vector3 GLfloat
 vec3 v = GL.Vector3 x y 0
