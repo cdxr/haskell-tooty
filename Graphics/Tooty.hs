@@ -41,14 +41,35 @@ import Data.Colour.SRGB.Linear ( Colour, RGB(..), toRGB )
 import Linear.V2
 
 
-newtype Render a = Render { render :: IO a }
+newtype Render a = Render { runRender :: IO a }
     deriving (Functor, Applicative, Monad)
 
 
-renderBuffer :: Render a -> IO a
+setup2D :: V2 Int -> IO ()
+setup2D (V2 w h) = do
+
+    GL.depthMask $= GL.Disabled
+
+    GL.matrixMode $= GL.Projection
+    GL.loadIdentity
+    GL.ortho 0 (fromIntegral w) (fromIntegral h) 0 (-1) 1
+
+    GL.matrixMode $= GL.Modelview 0
+    GL.translate (GL.Vector3 0.375 0.375 0 :: GL.Vector3 GLfloat)
+
+
+
+render :: Render a -> IO ()
+render m = do
+    GL.matrixMode $= GL.Modelview 0
+    runRender m
+
+
+renderBuffer :: Render a -> IO ()
 renderBuffer m = do
     GL.clear [GL.ColorBuffer]
-    render m <* GL.flush
+    render m
+    GL.flush    -- this is probably not necessary
 
 
 -- Color
