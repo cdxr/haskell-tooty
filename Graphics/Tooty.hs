@@ -2,6 +2,9 @@
 
 module Graphics.Tooty
 (
+    -- * Preparation
+    setup2D,
+    positionViewport,
     -- * The Render monad
     Render,
     render,
@@ -14,6 +17,10 @@ module Graphics.Tooty
     color,
     alpha,
     -- ** Drawing
+    pointSize,
+    lineWidth,
+    lineWidthRange,
+    drawPoint,
     drawLine,
     Style (..),
     draw,
@@ -41,10 +48,6 @@ import Data.Colour.SRGB.Linear ( Colour, RGB(..), toRGB )
 import Linear.V2
 
 
-newtype Render a = Render { runRender :: IO a }
-    deriving (Functor, Applicative, Monad)
-
-
 setup2D :: V2 Int -> IO ()
 setup2D (V2 w h) = do
 
@@ -52,24 +55,44 @@ setup2D (V2 w h) = do
 
     GL.matrixMode $= GL.Projection
     GL.loadIdentity
-    GL.ortho 0 (fromIntegral w) (fromIntegral h) 0 (-1) 1
+    GL.ortho 0 (fromIntegral w) 0 (fromIntegral h) (-1) 1
 
     GL.matrixMode $= GL.Modelview 0
+    GL.loadIdentity
     GL.translate (GL.Vector3 0.375 0.375 0 :: GL.Vector3 GLfloat)
 
+    -- Functionality not specific to 2D:
+
+    GL.lineSmooth  $= GL.Enabled
+    GL.pointSmooth $= GL.Enabled
+
+    GL.blend $= GL.Enabled
+    GL.blendFunc $= (GL.SrcAlpha, GL.OneMinusSrcAlpha)
 
 
-render :: Render a -> IO ()
+positionViewport :: V2 Int -> IO ()
+positionViewport p = do
+    (_, size) <- GL.get GL.viewport
+    GL.viewport $= (GL.Position x y, size)
+  where
+    V2 x y = fromIntegral <$> p
+
+
+newtype Render a = Render { runRender :: IO a }
+    deriving (Functor, Applicative, Monad)
+
+
+render :: Render a -> IO a
 render m = do
     GL.matrixMode $= GL.Modelview 0
     runRender m
 
 
-renderBuffer :: Render a -> IO ()
+renderBuffer :: Render a -> IO a
 renderBuffer m = do
     GL.clear [GL.ColorBuffer]
     render m
-    GL.flush    -- this is probably not necessary
+      <* GL.flush    -- this is probably not necessary
 
 
 -- Color
@@ -110,6 +133,21 @@ scale v (Render m) = Render $ GL.preservingMatrix $ do
 
 
 -- Drawing
+
+pointSize :: Double -> Render () -> Render ()
+pointSize s = localStateVar (\_ -> realToFrac s) GL.pointSize
+
+lineWidth :: Double -> Render () -> Render ()
+lineWidth w = localStateVar (\_ -> realToFrac w) GL.lineWidth
+
+lineWidthRange :: Render (Double, Double)
+lineWidthRange = Render $ doubles <$> GL.get GL.smoothLineWidthRange
+  where
+    doubles (a, b) = (realToFrac a, realToFrac b)
+
+
+drawPoint :: V2 Double -> Render ()
+drawPoint = Render . GL.renderPrimitive GL.Points . vert3
 
 
 drawLine :: V2 Double -> V2 Double -> Render ()
