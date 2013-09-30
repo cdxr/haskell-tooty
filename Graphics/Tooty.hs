@@ -90,12 +90,18 @@ newtype Render a = Render { runRender :: IO a }
     deriving (Functor, Applicative, Monad)
 
 
+-- | Perform a `Render` computation. A typical render loop might clear the
+-- buffer, call `render`, and then swap the buffers.
+--
+-- `setup2D` should be called before `render` any time that the OpenGL
+-- state might have been modified externally.
 render :: Render a -> IO a
 render m = do
     GL.matrixMode $= GL.Modelview 0
     runRender m
 
 
+-- TODO find a better way to incorporate this into `render`.
 renderBuffer :: Render a -> IO a
 renderBuffer m = do
     GL.clear [GL.ColorBuffer]
@@ -105,6 +111,8 @@ renderBuffer m = do
 
 -- Color
 
+-- | @color c m@ performs the computation @m@ with the @GL.currentColor@
+-- StateVar set to @c@.
 color :: Colour Float -> Render a -> Render a
 color c = localStateVar (setRGB c) GL.currentColor
   where
@@ -112,6 +120,8 @@ color c = localStateVar (setRGB c) GL.currentColor
         let RGB r g b = fmap realToFrac $ toRGB c
         in GL.Color4 r g b a
 
+-- | @alpha a m@ performs the computation @m@ with the alpha parameter of
+-- the @GL.currentColor@ -- StateVar set to @a@.
 alpha :: Float -> Render a -> Render a
 alpha a = localStateVar (setAlpha a) GL.currentColor
   where
@@ -128,20 +138,27 @@ glMatrixFromV44 = GL.newMatrix GL.RowMajor . concatMap toList . toList . toGL
     toGL = (fmap.fmap) realToFrac
 
 
+-- | @transform mat m@ performs the computation @m@ with the OpenGL matrix
+-- transformed by @mat@.
+--
+-- Note: this will typically be the OpenGL Modelview 0 matrix.
 transform :: Matrix -> Render a -> Render a
-transform v (Render m) = Render $ GL.preservingMatrix $ do
-    GL.multMatrix =<< glMatrixFromV44 v
+transform mat (Render m) = Render $ GL.preservingMatrix $ do
+    GL.multMatrix =<< glMatrixFromV44 mat
     m
 
 
+-- | @translate v@ is a transformation matrix that translates by @v@.
 translate :: V2 Double -> Matrix
 translate (V2 x y) = mkTransformationMat eye3 (V3 x y 0)
 
+-- | @rotate r@ is a 2D transformation matrix that rotates by @r@.
 rotate :: Double -> Matrix
 rotate r = mkTransformation q 0
   where
     q = axisAngle (V3 0 0 1) r
 
+-- | @scale v@ is a transformation matrix that scales by @v@.
 scale :: V2 Double -> Matrix
 scale (V2 x y) = V4 (V4 x 0 0 0) (V4 0 y 0 0) (V4 0 0 1 0) (V4 0 0 0 1)
 
