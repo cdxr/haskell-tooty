@@ -11,6 +11,10 @@ module Graphics.Tooty
     renderBuffer,
     -- ** Translations
     move,
+
+    Matrix,
+    transform,
+    translate,
     rotate,
     scale,
     -- ** Color operations
@@ -38,13 +42,17 @@ module Graphics.Tooty
 ) where
 
 import Control.Applicative
-import Data.Monoid
+import Control.Monad
 
-import Graphics.Rendering.OpenGL ( GLfloat, ($=), StateVar )
+import Data.Monoid
+import Data.Foldable ( toList )
+
+import Graphics.Rendering.OpenGL ( GLfloat, GLmatrix, ($=), StateVar )
 import qualified Graphics.Rendering.OpenGL as GL
 
 import Data.Colour.SRGB.Linear ( Colour, RGB(..), toRGB )
 
+import Linear hiding ( rotate )
 import Linear.V2
 
 
@@ -112,24 +120,35 @@ alpha a = localStateVar (setAlpha a) GL.currentColor
 
 -- Translations
 
-move :: V2 Double -> Render a -> Render a
-move v (Render m) = Render $ GL.preservingMatrix $ do
-    GL.translate (vec3 v)
+type Matrix = M44 Double
+
+glMatrixFromV44 :: Matrix -> IO (GLmatrix GLfloat)
+glMatrixFromV44 = GL.newMatrix GL.RowMajor . concatMap toList . toList . toGL
+  where
+    toGL = (fmap.fmap) realToFrac
+
+
+transform :: Matrix -> Render a -> Render a
+transform v (Render m) = Render $ GL.preservingMatrix $ do
+    GL.multMatrix =<< glMatrixFromV44 v
     m
 
-rotate :: Double -> Render a -> Render a
-rotate t (Render m) = Render $ GL.preservingMatrix $ do
-    GL.rotate (toDegrees $ glf t) (GL.Vector3 0 0 1 :: GL.Vector3 GLfloat)
-    m
-  where
-    toDegrees = (*) 180 . (/ pi)
 
-scale :: V2 Double -> Render a -> Render a
-scale v (Render m) = Render $ GL.preservingMatrix $ do
-    GL.scale x y 0
-    m
+translate :: V2 Double -> Matrix
+translate (V2 x y) = mkTransformationMat eye3 (V3 x y 0)
+
+rotate :: Double -> Matrix
+rotate r = mkTransformation q 0
   where
-    V2 x y = glf <$> v
+    q = axisAngle (V3 0 0 1) r
+
+scale :: V2 Double -> Matrix
+scale (V2 x y) = V4 (V4 x 0 0 0) (V4 0 y 0 0) (V4 0 0 1 0) (V4 0 0 0 1)
+
+
+-- | A synonym for @transform . translate@
+move :: V2 Double -> Render () -> Render ()
+move = transform . translate
 
 
 -- Drawing
