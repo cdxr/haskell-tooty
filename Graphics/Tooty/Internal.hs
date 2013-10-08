@@ -2,6 +2,11 @@
 {-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveTraversable #-}
 
+{-
+- NOTE: this experimental internal implementation is not yet used by any
+- front-facing API.
+-}
+
 
 module Graphics.Tooty.Internal where
 
