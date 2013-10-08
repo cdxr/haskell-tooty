@@ -5,13 +5,13 @@ module Graphics.Tooty
     -- * Preparation
     setup2D,
     positionViewport,
+
     -- * The Render monad
     Render,
     render,
     renderBuffer,
     -- ** Translations
     move,
-
     Matrix,
     transform,
     translate,
@@ -86,8 +86,15 @@ positionViewport p = do
     V2 x y = fromIntegral <$> p
 
 
+-- | @Render a@ is a computation that draws using OpenGL and outputs an
+-- @a@.
+--
+-- NOTE: the @a@ parameter might be removed, and this would become
+-- a monoid.
 newtype Render a = Render { runRender :: IO a }
     deriving (Functor, Applicative, Monad)
+
+    -- note that we do not export MonadIO here
 
 
 -- | Perform a `Render` computation. A typical render loop might clear the
