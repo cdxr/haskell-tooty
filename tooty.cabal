@@ -1,5 +1,5 @@
 name:                tooty
-version:             0.1.1.0
+version:             0.1.2.0
 synopsis:            a minimal Haskell DSL for 2d drawing with OpenGL
 -- description:         
 license:             BSD3

@@ -6,8 +6,8 @@ module Graphics.Tooty
     setup2D,
     positionViewport,
 
-    -- * The Render monad
-    Render,
+    -- * The Image monad
+    Image,
     render,
     renderBuffer,
     -- ** Translations
@@ -23,7 +23,6 @@ module Graphics.Tooty
     -- ** Drawing
     pointSize,
     lineWidth,
-    lineWidthRange,
     drawPoint,
     drawLine,
     Style (..),
@@ -42,7 +41,6 @@ module Graphics.Tooty
 ) where
 
 import Control.Applicative
-import Control.Monad
 
 import Data.Monoid
 import Data.Foldable ( toList )
@@ -89,30 +87,27 @@ positionViewport p = do
     V2 x y = fromIntegral <$> p
 
 
--- | @Render a@ is a computation that draws using OpenGL and outputs an
--- @a@.
---
--- NOTE: the @a@ parameter might be removed, and this would become
--- a monoid.
-newtype Render a = Render { runRender :: IO a }
-    deriving (Functor, Applicative, Monad)
+-- | An @Image@ is an opaque OpenGL computation.
+newtype Image = Image { runImage :: IO () }
 
-    -- note that we do not export MonadIO here
+instance Monoid Image where
+    mempty = Image $ pure ()
+    Image a `mappend` Image b = Image $ a >> b
 
 
--- | Perform a `Render` computation. A typical render loop might clear the
--- buffer, call `render`, and then swap the buffers.
+-- | Image an `Image`. A typical render loop might clear the buffer, call
+-- `render`, and then swap the buffers.
 --
 -- `setup2D` should be called before `render` any time that the OpenGL
--- state might have been modified externally.
-render :: Render a -> IO a
+-- state might have been modified outside of Tooty.
+render :: Image -> IO ()
 render m = do
     GL.matrixMode $= GL.Modelview 0
-    runRender m
+    runImage m
 
 
 -- TODO find a better way to incorporate this into `render`.
-renderBuffer :: Render a -> IO a
+renderBuffer :: Image -> IO ()
 renderBuffer m = do
     GL.clear [GL.ColorBuffer]
     render m
@@ -123,7 +118,7 @@ renderBuffer m = do
 
 -- | @color c m@ performs the computation @m@ with the @GL.currentColor@
 -- StateVar set to @c@.
-color :: Colour Float -> Render a -> Render a
+color :: Colour Float -> Image -> Image
 color c = localStateVar (setRGB c) GL.currentColor
   where
     setRGB c (GL.Color4 _ _ _ a) =
@@ -132,7 +127,7 @@ color c = localStateVar (setRGB c) GL.currentColor
 
 -- | @alpha a m@ performs the computation @m@ with the alpha parameter of
 -- the @GL.currentColor@ -- StateVar set to @a@.
-alpha :: Float -> Render a -> Render a
+alpha :: Float -> Image -> Image
 alpha a = localStateVar (setAlpha a) GL.currentColor
   where
     setAlpha a (GL.Color4 r g b _) = GL.Color4 r g b (realToFrac a)
@@ -152,8 +147,8 @@ glMatrixFromV44 = GL.newMatrix GL.RowMajor . concatMap toList . toList . toGL
 -- transformed by @mat@.
 --
 -- Note: this will typically be the OpenGL Modelview 0 matrix.
-transform :: Matrix -> Render a -> Render a
-transform mat (Render m) = Render $ GL.preservingMatrix $ do
+transform :: Matrix -> Image -> Image
+transform mat (Image m) = Image $ GL.preservingMatrix $ do
     GL.multMatrix =<< glMatrixFromV44 mat
     m
 
@@ -174,44 +169,38 @@ scale (V2 x y) = V4 (V4 x 0 0 0) (V4 0 y 0 0) (V4 0 0 1 0) (V4 0 0 0 1)
 
 
 -- | A synonym for @transform . translate@
-move :: V2 Double -> Render () -> Render ()
+move :: V2 Double -> Image -> Image
 move = transform . translate
 
 
 -- Drawing
 
-pointSize :: Double -> Render () -> Render ()
+pointSize :: Double -> Image -> Image
 pointSize s = localStateVar (\_ -> realToFrac s) GL.pointSize
 
-lineWidth :: Double -> Render () -> Render ()
+lineWidth :: Double -> Image -> Image
 lineWidth w = localStateVar (\_ -> realToFrac w) GL.lineWidth
 
-lineWidthRange :: Render (Double, Double)
-lineWidthRange = Render $ doubles <$> GL.get GL.smoothLineWidthRange
-  where
-    doubles (a, b) = (realToFrac a, realToFrac b)
+
+drawPoint :: V2 Double -> Image
+drawPoint = Image . GL.renderPrimitive GL.Points . vert3
 
 
-drawPoint :: V2 Double -> Render ()
-drawPoint = Render . GL.renderPrimitive GL.Points . vert3
+drawLine :: V2 Double -> V2 Double -> Image
+drawLine a b = Image $ GL.renderPrimitive GL.Lines $ mapM_ vert3 [a, b]
 
 
-drawLine :: V2 Double -> V2 Double -> Render ()
-drawLine a b = Render $ GL.renderPrimitive GL.Lines $ mapM_ vert3 [a, b]
-
-
-draw :: (HasGeo g) => Style -> g -> Render ()
-draw s g = Render $ drawGeo (toGeo g) s
+draw :: (HasGeo g) => Style -> g -> Image
+draw s g = Image $ drawGeo (toGeo g) s
 
 
 
--- | Modify a StateVar, run a computation, then return the StateVar to its
+-- | Modify a StateVar, run an `Image`, then return the StateVar to its
 -- former state.
-localStateVar :: (a -> a) -> StateVar a -> Render b -> Render b
-localStateVar f v (Render m) = Render $ do
+localStateVar :: (a -> a) -> StateVar a -> Image -> Image
+localStateVar f v (Image m) = Image $ do
     a' <- GL.get v
     v $= f a'
     b <- m
     v $= a'
     return b
-
