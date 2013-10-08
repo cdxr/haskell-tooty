@@ -4,15 +4,21 @@ module Graphics.Tooty.Geometry (
     Geo,
     drawGeo,
     HasGeo (..),
+
+    -- ** Quadrilaterals
     Quad (..),
     rectangle,
     centerRectangle,
+
+    -- ** Ellipses
+    Circle (..),
 
     -- * Re-exports
     module Linear.V2,
     ) where
 
 
+import Control.Monad
 import Data.Monoid
 import Linear.V2
 
@@ -50,15 +56,13 @@ geoQuad :: Quad -> Geo
 geoQuad (Quad a b c d) = Geo $ \s -> do
     let primMode = case s of
             Outline -> GL.LineLoop
-            Fill    -> GL.Quads
+            -- TODO: replace this with a GL.Triangle implementation
+            Fill    -> GL.Quads  
     GL.renderPrimitive primMode $ do
         vert3 a >> tex 0 0
         vert3 b >> tex 1 0
         vert3 c >> tex 1 1
         vert3 d >> tex 0 1
-  where
-    tex :: GL.GLfloat -> GL.GLfloat -> IO ()
-    tex s t = GL.texCoord $ GL.TexCoord2 s t
 
 
 rectangle :: V2 Double -> V2 Double -> Quad
@@ -70,3 +74,27 @@ centerRectangle p = rectangle (negate p') p'
   where
     p' = fmap (/ 2) p
 
+
+data Circle = Circle !Double
+    deriving (Show, Eq, Ord)
+
+instance HasGeo Circle where
+    toGeo = geoCircle
+
+geoCircle :: Circle -> Geo
+geoCircle (Circle r) = Geo $ \s -> do
+    let primMode = case s of
+            Outline -> GL.LineLoop
+            Fill    -> GL.TriangleFan
+    GL.renderPrimitive primMode $ do
+        when (s == Fill) $ vert3 (V2 0 0) >> tex 0 0
+        forM_ verts $ \v -> vert3 v >> tex 1 0
+  where
+    numSegments = 60
+    angles = map (\i -> i*2*pi / numSegments) [0 .. numSegments - 1]
+    verts = [V2 (sin a * r) (cos a * r) | a <- angles]
+
+
+
+tex :: GL.GLfloat -> GL.GLfloat -> IO ()
+tex s t = GL.texCoord $ GL.TexCoord2 s t
