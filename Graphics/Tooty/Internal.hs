@@ -1,59 +1,20 @@
-{-# LANGUAGE DeriveFunctor #-}
-{-# LANGUAGE DeriveFoldable #-}
-{-# LANGUAGE DeriveTraversable #-}
-
-{-
-- NOTE: this experimental internal implementation is not yet used by any
-- front-facing API.
--}
-
-
 module Graphics.Tooty.Internal where
 
-
-import qualified Graphics.Rendering.OpenGL as GL
-
-import Graphics.Rendering.OpenGL.Raw.Core31.Types
-
-import Data.Fix
-import Data.Monoid
-import Data.Foldable    ( Foldable )
-import Data.Traversable ( Traversable )
+import Linear.V2
+import Graphics.Rendering.OpenGL as GL
 
 
-data RenderF a
-    = Branch [a]
-    | Trans Transform a
-    | Prim GL.PrimitiveMode Prim
-    deriving (Show, Eq, Ord, Functor, Foldable, Traversable)
 
+vec3 :: V2 Double -> GL.Vector3 GLfloat
+vec3 v = GL.Vector3 x y 0
+  where
+    V2 x y = fmap realToFrac v
 
-data Transform
-    = Translate (GL.Vector3 GLdouble)
-    | Texture GL.TextureObject
-    deriving (Show, Eq, Ord)
+vert3 :: V2 Double -> IO ()
+vert3 v = GL.vertex $ GL.Vertex3 x y 0
+  where
+    x :: GLfloat
+    V2 x y = fmap realToFrac v
 
-applyTransform :: Transform -> IO ()
-applyTransform t = case t of
-    Translate v3 -> GL.translate v3
-    Texture to   -> GL.textureBinding GL.Texture2D GL.$= Just to
-
-
-data Prim = P [GL.Vertex3 GLdouble] [GL.TexCoord2 GLdouble]
-    deriving (Show, Eq, Ord)
-
-drawPrim :: Prim -> IO ()
-drawPrim (P vs ts) = mapM_ GL.vertex vs >> mapM_ GL.texCoord ts
-
-instance Monoid Prim where
-    mempty = P [] []
-    P vs ts `mappend` P vs' ts' = P (vs++vs') (ts++ts')
-
-
-type Render = Fix RenderF
-
-render :: Render -> IO ()
-render r = case unFix r of
-    Branch rs -> mapM_ render rs
-    Trans t r -> GL.preservingMatrix $ applyTransform t >> render r
-    Prim pm p -> GL.renderPrimitive pm $ drawPrim p
+glf :: (Real a) => a -> GLfloat
+glf = realToFrac
