@@ -12,10 +12,6 @@ module Graphics.Tooty.Geometry (
 
     -- ** Ellipses
     Circle (..),
-<<<<<<< HEAD
-=======
-    
->>>>>>> c963dad5803feb775203c5a007aafab372e4a8c1
 
     -- * Re-exports
     module Linear.V2,
