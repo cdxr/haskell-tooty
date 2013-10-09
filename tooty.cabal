@@ -12,6 +12,9 @@ build-type:          Simple
 cabal-version:       >=1.8
 
 library
-  exposed-modules:     Graphics.Tooty, Graphics.Tooty.Geometry
+  exposed-modules:
+    Graphics.Tooty
+    Graphics.Tooty.Image
+    Graphics.Tooty.Geometry
   other-modules:       Graphics.Tooty.Internal
   build-depends:       base ==4.6.*, OpenGL ==2.8.*, linear ==1.2.*, colour ==2.3.*
