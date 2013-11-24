@@ -51,11 +51,11 @@ instance Monoid Image where
     Image a `mappend` Image b = Image $ a >> b
 
 
--- | Image an `Image`. A typical render loop might clear the buffer, call
+-- | Render an `Image`. A typical render loop might clear the buffer, call
 -- `render`, and then swap the buffers.
 --
 -- `setup2D` should be called before `render` any time that the OpenGL
--- state might have been modified outside of Tooty.
+-- state may have been modified outside of Tooty.
 render :: Image -> IO ()
 render m = do
     GL.matrixMode $= GL.Modelview 0
