@@ -15,6 +15,7 @@ library
   exposed-modules:
     Graphics.Tooty
     Graphics.Tooty.Image
+    Graphics.Tooty.Matrix
     Graphics.Tooty.Geometry
     Graphics.Tooty.Text
     Graphics.Tooty.Internal

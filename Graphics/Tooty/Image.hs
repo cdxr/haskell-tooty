@@ -2,15 +2,9 @@ module Graphics.Tooty.Image (
     -- * Image
     Image,
     render,
-    renderBuffer,
     -- ** Translations
     move,
-    Matrix,
-    (!*!),
     transform,
-    translate,
-    rotate,
-    scale,
     -- ** Color operations
     color,
     alpha,
@@ -25,11 +19,8 @@ module Graphics.Tooty.Image (
     module Data.Colour.SRGB.Linear
     ) where
 
-import Control.Applicative
 
-import Data.Foldable ( toList )
-
-import Graphics.Rendering.OpenGL ( GLfloat, GLmatrix, ($=) )
+import Graphics.Rendering.OpenGL ( ($=) )
 import qualified Graphics.Rendering.OpenGL as GL
 
 import Linear hiding ( rotate )
@@ -38,6 +29,7 @@ import Linear.V2
 import Data.Colour.SRGB.Linear ( Colour, RGB(..), toRGB )
 
 import Graphics.Tooty.Internal
+import Graphics.Tooty.Matrix
 
 
 -- | Render an `Image`. A typical render loop might clear the buffer, call
@@ -47,16 +39,11 @@ import Graphics.Tooty.Internal
 -- state may have been modified outside of Tooty.
 render :: Image -> IO ()
 render m = do
+    GL.clear [GL.ColorBuffer]  -- maybe we should leave this to the user?
     GL.matrixMode $= GL.Modelview 0
+    GL.loadIdentity
+
     runImage m
-
-
--- TODO find a better way to incorporate this into `render`.
-renderBuffer :: Image -> IO ()
-renderBuffer m = do
-    GL.clear [GL.ColorBuffer]
-    render m
-      <* GL.flush    -- this is probably not necessary
 
 
 -- Color
@@ -80,13 +67,6 @@ alpha a = localStateVar (setAlpha a) GL.currentColor
 
 -- Translations
 
-type Matrix = M44 Double
-
-glMatrixFromV44 :: Matrix -> IO (GLmatrix GLfloat)
-glMatrixFromV44 = GL.newMatrix GL.RowMajor . concatMap toList . toList . toGL
-  where
-    toGL = (fmap.fmap) realToFrac
-
 
 -- | @transform mat m@ performs the computation @m@ with the OpenGL matrix
 -- transformed by @mat@.
@@ -94,23 +74,8 @@ glMatrixFromV44 = GL.newMatrix GL.RowMajor . concatMap toList . toList . toGL
 -- Note: this will typically be the OpenGL Modelview 0 matrix.
 transform :: Matrix -> Image -> Image
 transform mat (Image m) = Image $ GL.preservingMatrix $ do
-    GL.multMatrix =<< glMatrixFromV44 mat
+    GL.multMatrix =<< toGLMatrix mat
     m
-
-
--- | @translate v@ is a transformation matrix that translates by @v@.
-translate :: V2 Double -> Matrix
-translate (V2 x y) = mkTransformationMat eye3 (V3 x y 0)
-
--- | @rotate r@ is a 2D transformation matrix that rotates by @r@.
-rotate :: Double -> Matrix
-rotate r = mkTransformation q 0
-  where
-    q = axisAngle (V3 0 0 1) r
-
--- | @scale v@ is a transformation matrix that scales by @v@.
-scale :: V2 Double -> Matrix
-scale (V2 x y) = V4 (V4 x 0 0 0) (V4 0 y 0 0) (V4 0 0 1 0) (V4 0 0 0 1)
 
 
 -- | A synonym for @transform . translate@

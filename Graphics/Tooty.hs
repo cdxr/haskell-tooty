@@ -3,6 +3,7 @@
 module Graphics.Tooty
 (
     module Graphics.Tooty.Image,
+    module Graphics.Tooty.Matrix,
     module Graphics.Tooty.Geometry,
     module Graphics.Tooty.Text,
 
@@ -19,6 +20,7 @@ import Linear.V2
 
 import Graphics.Tooty.Geometry
 import Graphics.Tooty.Image
+import Graphics.Tooty.Matrix
 import Graphics.Tooty.Text
 
 
