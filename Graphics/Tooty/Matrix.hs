@@ -25,3 +25,13 @@ rotate r = mkTransformation q 0
 -- | @scale v@ is a transformation matrix that scales by @v@.
 scale :: V2 Double -> Matrix
 scale (V2 x y) = V4 (V4 x 0 0 0) (V4 0 y 0 0) (V4 0 0 1 0) (V4 0 0 0 1)
+
+
+
+-- TODO test these
+
+transformPoint :: Matrix -> V2 Double -> V2 Double
+transformPoint mat (V2 x y) = (\(V4 x' y' _ _) -> V2 x' y') $ V4 x y 0 1 *! mat
+
+transformVector :: Matrix -> V2 Double -> V2 Double
+transformVector mat (V2 x y) = (\(V4 x' y' _ _) -> V2 x' y') $ V4 x y 0 0 *! mat
