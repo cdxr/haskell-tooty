@@ -4,6 +4,7 @@ module Graphics.Tooty.Geometry (
     Geo,
     HasGeo (..),
     drawGeo,
+    transformGeo,
 
     -- ** Quadrilaterals
     Quad (..),
@@ -25,12 +26,25 @@ import Linear.V2
 import qualified Graphics.Rendering.OpenGL as GL
 
 import Graphics.Tooty.Internal
+import Graphics.Tooty.Matrix
 
 
 
 drawGeo :: (HasGeo g) => Style -> g -> Image
 drawGeo s g = Image $ renderGeo (toGeo g) s
 
+
+-- TODO test the properties of transformGeo
+
+-- | @transformGeo mat g@ is the `Geo` @g@ transformed by the
+-- matrix @m@.
+--
+-- @
+-- drawGeo . transformGeo mat = transform mat . drawGeo
+-- @
+--
+transformGeo :: Matrix -> Geo -> Geo
+transformGeo mat (Geo f) = Geo $ transformGL mat . f
 
 
 data Style = Outline | Fill
@@ -47,9 +61,10 @@ instance Monoid Geo where
 class HasGeo g where
     toGeo :: g -> Geo
 
+
 instance HasGeo Geo where
     toGeo = id
-    
+
 
 -- | A convex quadrilateral with counter-clockwise winding.
 data Quad = Quad (V2 Double) (V2 Double) (V2 Double) (V2 Double)
@@ -57,6 +72,7 @@ data Quad = Quad (V2 Double) (V2 Double) (V2 Double) (V2 Double)
 
 instance HasGeo Quad where
     toGeo = geoQuad
+
 
 geoQuad :: Quad -> Geo
 geoQuad (Quad a b c d) = Geo $ \s -> do
