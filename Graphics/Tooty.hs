@@ -4,6 +4,7 @@ module Graphics.Tooty
 (
     module Graphics.Tooty.Image,
     module Graphics.Tooty.Geometry,
+    module Graphics.Tooty.Text,
 
     -- * OpenGL context preparation
     setup2D,
@@ -18,6 +19,7 @@ import Linear.V2
 
 import Graphics.Tooty.Geometry
 import Graphics.Tooty.Image
+import Graphics.Tooty.Text
 
 
 setup2D :: V2 Int -> IO ()

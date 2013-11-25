@@ -33,6 +33,7 @@ import Data.Foldable ( toList )
 
 import Graphics.Rendering.OpenGL ( GLfloat, GLmatrix, ($=), StateVar )
 import qualified Graphics.Rendering.OpenGL as GL
+import qualified Graphics.Rendering.FTGL as Font
 
 import Linear hiding ( rotate )
 import Linear.V2
@@ -68,6 +69,12 @@ renderBuffer m = do
     GL.clear [GL.ColorBuffer]
     render m
       <* GL.flush    -- this is probably not necessary
+
+
+-- Text
+
+text :: Font.Font -> String -> Image
+text font s = Image $ Font.renderFont font s Font.All
 
 
 -- Color

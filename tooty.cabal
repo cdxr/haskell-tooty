@@ -16,5 +16,12 @@ library
     Graphics.Tooty
     Graphics.Tooty.Image
     Graphics.Tooty.Geometry
-  other-modules:       Graphics.Tooty.Internal
-  build-depends:       base ==4.6.*, OpenGL ==2.8.*, linear ==1.2.*, colour ==2.3.*
+    Graphics.Tooty.Text
+  other-modules:
+    Graphics.Tooty.Internal
+  build-depends:
+    base ==4.6.*,
+    OpenGL ==2.8.*,
+    FTGL   ==1.333,
+    linear ==1.2.*,
+    colour ==2.3.*
