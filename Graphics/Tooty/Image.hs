@@ -6,6 +6,7 @@ module Graphics.Tooty.Image (
     -- ** Translations
     move,
     Matrix,
+    (!*!),
     transform,
     translate,
     rotate,
