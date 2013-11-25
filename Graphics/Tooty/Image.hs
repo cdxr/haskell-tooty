@@ -73,9 +73,7 @@ alpha a = localStateVar (setAlpha a) GL.currentColor
 --
 -- Note: this will typically be the OpenGL Modelview 0 matrix.
 transform :: Matrix -> Image -> Image
-transform mat (Image m) = Image $ GL.preservingMatrix $ do
-    GL.multMatrix =<< toGLMatrix mat
-    m
+transform mat (Image m) = Image $ transformGL mat m
 
 
 -- | A synonym for @transform . translate@

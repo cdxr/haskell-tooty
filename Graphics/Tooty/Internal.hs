@@ -2,7 +2,13 @@ module Graphics.Tooty.Internal where
 
 import Data.Monoid
 import Linear.V2
-import Graphics.Rendering.OpenGL as GL
+
+import Data.Foldable ( toList )
+
+import Graphics.Rendering.OpenGL ( GLfloat, GLmatrix, StateVar, ($=) )
+import qualified Graphics.Rendering.OpenGL as GL
+
+import Graphics.Tooty.Matrix
 
 
 -- | An @Image@ is an OpenGL computation.
@@ -22,6 +28,18 @@ localStateVar f v (Image m) = Image $ do
     b <- m
     v $= a'
     return b
+
+
+toGLMatrix :: Matrix -> IO (GLmatrix GLfloat)
+toGLMatrix = GL.newMatrix GL.RowMajor . concatMap toList . toList . toGL
+  where
+    toGL = (fmap.fmap) realToFrac
+
+
+transformGL :: Matrix -> IO () -> IO ()
+transformGL mat m = GL.preservingMatrix $ do
+    GL.multMatrix =<< toGLMatrix mat
+    m
 
 
 vec3 :: V2 Double -> GL.Vector3 GLfloat
