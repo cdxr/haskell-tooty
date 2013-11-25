@@ -19,7 +19,6 @@ module Graphics.Tooty.Image (
     lineWidth,
     drawPoint,
     drawLine,
-    Style (..),
 
     -- * Re-exports
     module Linear.V2,
@@ -28,12 +27,10 @@ module Graphics.Tooty.Image (
 
 import Control.Applicative
 
-import Data.Monoid
 import Data.Foldable ( toList )
 
-import Graphics.Rendering.OpenGL ( GLfloat, GLmatrix, ($=), StateVar )
+import Graphics.Rendering.OpenGL ( GLfloat, GLmatrix, ($=) )
 import qualified Graphics.Rendering.OpenGL as GL
-import qualified Graphics.Rendering.FTGL as Font
 
 import Linear hiding ( rotate )
 import Linear.V2
@@ -41,7 +38,6 @@ import Linear.V2
 import Data.Colour.SRGB.Linear ( Colour, RGB(..), toRGB )
 
 import Graphics.Tooty.Internal
-import Graphics.Tooty.Geometry
 
 
 -- | Render an `Image`. A typical render loop might clear the buffer, call
