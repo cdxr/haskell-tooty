@@ -2,8 +2,8 @@ module Graphics.Tooty.Geometry (
     -- * Geometry
     Style (..),
     Geo,
-    drawGeo,
     HasGeo (..),
+    drawGeo,
 
     -- ** Quadrilaterals
     Quad (..),
@@ -27,15 +27,21 @@ import qualified Graphics.Rendering.OpenGL as GL
 import Graphics.Tooty.Internal
 
 
+
+drawGeo :: (HasGeo g) => Style -> g -> Image
+drawGeo s g = Image $ renderGeo (toGeo g) s
+
+
+
 data Style = Outline | Fill
     deriving (Show, Eq, Ord)
 
-newtype Geo = Geo { drawGeo :: Style -> IO () }
+newtype Geo = Geo { renderGeo :: Style -> IO () }
 
 
 instance Monoid Geo where
     mempty = Geo $ \_ -> return ()
-    mappend a b = Geo $ \s -> drawGeo a s >> drawGeo b s
+    mappend a b = Geo $ \s -> renderGeo a s >> renderGeo b s
 
 
 class HasGeo g where

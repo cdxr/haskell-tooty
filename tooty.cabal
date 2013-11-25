@@ -17,7 +17,6 @@ library
     Graphics.Tooty.Image
     Graphics.Tooty.Geometry
     Graphics.Tooty.Text
-  other-modules:
     Graphics.Tooty.Internal
   build-depends:
     base ==4.6.*,

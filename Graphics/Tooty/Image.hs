@@ -19,7 +19,6 @@ module Graphics.Tooty.Image (
     drawPoint,
     drawLine,
     Style (..),
-    draw,
 
     -- * Re-exports
     module Linear.V2,
@@ -44,14 +43,6 @@ import Graphics.Tooty.Internal
 import Graphics.Tooty.Geometry
 
 
--- | An @Image@ is an opaque OpenGL computation.
-newtype Image = Image { runImage :: IO () }
-
-instance Monoid Image where
-    mempty = Image $ pure ()
-    Image a `mappend` Image b = Image $ a >> b
-
-
 -- | Render an `Image`. A typical render loop might clear the buffer, call
 -- `render`, and then swap the buffers.
 --
@@ -69,12 +60,6 @@ renderBuffer m = do
     GL.clear [GL.ColorBuffer]
     render m
       <* GL.flush    -- this is probably not necessary
-
-
--- Text
-
-text :: Font.Font -> String -> Image
-text font s = Image $ Font.renderFont font s Font.All
 
 
 -- Color
@@ -152,18 +137,3 @@ drawPoint = Image . GL.renderPrimitive GL.Points . vert3
 drawLine :: V2 Double -> V2 Double -> Image
 drawLine a b = Image $ GL.renderPrimitive GL.Lines $ mapM_ vert3 [a, b]
 
-
-draw :: (HasGeo g) => Style -> g -> Image
-draw s g = Image $ drawGeo (toGeo g) s
-
-
-
--- | Modify a StateVar, run an `Image`, then return the StateVar to its
--- former state.
-localStateVar :: (a -> a) -> StateVar a -> Image -> Image
-localStateVar f v (Image m) = Image $ do
-    a' <- GL.get v
-    v $= f a'
-    b <- m
-    v $= a'
-    return b

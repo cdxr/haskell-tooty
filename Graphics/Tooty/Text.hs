@@ -3,9 +3,21 @@ module Graphics.Tooty.Text where
 import Control.Applicative
 
 import Foreign.Ptr ( nullPtr )
-import Graphics.Rendering.FTGL
 import Data.Maybe ( fromMaybe )
 
+import Graphics.Rendering.FTGL hiding ( Font )
+import qualified Graphics.Rendering.FTGL as FTGL
+
+import Graphics.Tooty.Internal
+
+
+-- Text
+
+text :: Font -> String -> Image
+text (Font font) s = Image $ renderFont font s All
+
+
+newtype Font = Font FTGL.Font
 
 type FontSize = Int
 type FontRes  = Int
@@ -18,7 +30,7 @@ tryCreateFont path size mres = go =<< createTextureFont path
         | font == nullPtr = return Nothing
         | otherwise = do
             setFontFaceSize font size (fromMaybe 0 mres)
-            return $ Just font
+            return $ Just $ Font font
 
 
 createFont :: FilePath -> FontSize -> Maybe FontRes -> IO Font

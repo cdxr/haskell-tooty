@@ -1,8 +1,27 @@
 module Graphics.Tooty.Internal where
 
+import Data.Monoid
 import Linear.V2
 import Graphics.Rendering.OpenGL as GL
 
+
+-- | An @Image@ is an OpenGL computation.
+newtype Image = Image { runImage :: IO () }
+
+instance Monoid Image where
+    mempty = Image $ return ()
+    Image a `mappend` Image b = Image $ a >> b
+
+
+-- | Modify a StateVar, run an `Image`, then return the StateVar to its
+-- former state.
+localStateVar :: (a -> a) -> StateVar a -> Image -> Image
+localStateVar f v (Image m) = Image $ do
+    a' <- GL.get v
+    v $= f a'
+    b <- m
+    v $= a'
+    return b
 
 
 vec3 :: V2 Double -> GL.Vector3 GLfloat
